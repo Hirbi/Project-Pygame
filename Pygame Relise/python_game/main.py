@@ -141,7 +141,8 @@ def easter_egg():
                     WATER_EGG = not WATER_EGG
                 if event.key == 103:
                     global persons
-                    persons.append('goose.png')
+                    if 'goose.png' not in persons:
+                        persons.append('goose.png')
         screen.blit(image, (0, 0))
         pygame.display.flip()
 
