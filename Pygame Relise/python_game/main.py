@@ -512,6 +512,7 @@ def game():
                     stop = stop_game()
                     if stop:
                         return
+                step_tmp = 0
                 if event.key == 275:
                     x_move, y_move = 25, 0
                     jump.play()
@@ -519,11 +520,11 @@ def game():
                     x_move, y_move = -25, 0
                     jump.play()
                 elif event.key == 273:
-                    player_step += 1
+                    step_tmp = 1
                     x_move, y_move = 0, -60
                     jump.play()
                 elif event.key == 274:
-                    player_step -= 1
+                    step_tmp = -1
                     x_move, y_move = 0, 60
                     jump.play()
                 step = True
@@ -541,6 +542,9 @@ def game():
                             + sprite.rect.w and abs(sprite.rect.y - player.rect.y - y_move) < 20:
                         step = False
                 if 0 <= player.rect.x + x_move < width and step:
+                    player_step += step_tmp
+                    if player_step < 0:
+                        player_step = 0
                     player.rect = player.rect.move(x_move, y_move)
         screen.fill((62, 180, 137))
         camera.update(player)
