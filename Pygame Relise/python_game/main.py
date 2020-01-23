@@ -3,7 +3,6 @@ import sys
 import time
 from random import choice
 
-
 pygame.mixer.init()
 FPS = 60
 size = width, height = 500, 700
@@ -33,7 +32,7 @@ DIFFICULTY = 1
 BLOCKS = 25
 VOLUME = 0.2
 jump = pygame.mixer.Sound('data\\snd\\jump.wav')
-gameover_music = pygame.mixer.Sound('data\\snd\\game_over.wav')
+game_over_music = pygame.mixer.Sound('data\\snd\\game_over.wav')
 victory_music = pygame.mixer.Sound('data\\snd\\victory.wav')
 pygame.mixer_music.set_volume(VOLUME)
 jump.set_volume(VOLUME)
@@ -44,14 +43,16 @@ class Objects(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__(object_sprite, all_sprite)
         self.type = 'object'
+        self.pos = pos
         self.image = choice([tile_images['stone']] + [tile_images['tree']] * 4)
         self.rect = self.image.get_rect().move(pos[0], pos[1])
 
 
 class Car(pygame.sprite.Sprite):
     images = [pygame.image.load('data\\car_taxi.png'), pygame.image.load('data\\car_police.png'),
-              pygame.image.load('data\\car_sckoraya.png')]
-    images += [pygame.image.load('data\\car_norm1.png'), pygame.image.load('data\\car_norm2.png')] * 3
+              pygame.image.load('data\\car_emergency.png')]
+    images += [pygame.image.load('data\\car_norm1.png'),
+               pygame.image.load('data\\car_norm2.png')] * 3
 
     def __init__(self, pos):
         super().__init__(car_sprite, all_sprite)
@@ -76,33 +77,34 @@ class Car(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
 
-    def __init__(self, height, number_pers):
+    def __init__(self, height_place, number_pers):
         super().__init__(player_sprite, all_sprite)
         self.image = pygame.image.load('data\\persons\\' + persons[number_pers])
         self.type = 'player'
-        self.rect = self.image.get_rect().move(350, height)
+        self.pos = (350, height_place)
+        self.rect = self.image.get_rect().move(350, height_place)
         self.mask = pygame.mask.from_surface(self.image)
         self.dead_move_v = 0
 
     def update(self):
-        global running, Dead_Screen
+        global running, Dead_Screen, tile_sprite, wood_sprite, car_sprite, railway_sprite
         if running:
             for sprite in tile_sprite:
                 if self.rect.colliderect(sprite.rect) and sprite.type == 'water':
-                    flag, napr = True, -1
-                    for spritej in wood_sprite:
-                        if spritej.rect.x <= self.rect.x \
-                                and spritej.rect.x + spritej.rect.w >= self.rect.x + self.rect.w \
-                                and abs(spritej.rect.y - self.rect.y) <= 20:
+                    flag, direction = True, -1
+                    for sprite_j in wood_sprite:
+                        if sprite_j.rect.x <= self.rect.x \
+                                and sprite_j.rect.x + sprite_j.rect.w >= self.rect.x + self.rect.w \
+                                and abs(sprite_j.rect.y - self.rect.y) <= 20:
                             flag = False
-                            napr = spritej.napr
+                            direction = sprite_j.direction
                             break
                     if flag:
                         self.dead_move_v = 1000
                         Dead_Screen = True
                         running = False
                     else:
-                        if napr:
+                        if direction:
                             self.rect = self.rect.move(-1, 0)
                         else:
                             self.rect = self.rect.move(1, 0)
@@ -165,12 +167,12 @@ def stop_game():
 
 
 def settings():
-    global BLOCKS, VOLUME
+    global BLOCKS, VOLUME, DIFFICULTY
     image = pygame.image.load("data\\fons\\settings.png")
     screen.blit(image, (0, 0))
-    coords_blocks = {25: (128, 140), 50: (128, 240), 100: (128, 340), 200: (125, 440)}
-    coords_dif = {1: (235, 250), 2: (335, 250), 3: (435, 250)}
-    coords_sound = {0.2: (330, 550), 0: (330, 600)}
+    coord_blocks = {25: (128, 140), 50: (128, 240), 100: (128, 340), 200: (125, 440)}
+    coord_dif = {1: (235, 250), 2: (335, 250), 3: (435, 250)}
+    coord_sound = {0.2: (330, 550), 0: (330, 600)}
     image_cursor_blocks = pygame.image.load("data\\blocks.png")
     image_cursor_dif = pygame.image.load("data\\blocks.png")
     image_cursor_sound = pygame.image.load("data\\blocks.png")
@@ -184,8 +186,8 @@ def settings():
                 if event.key == 27:
                     return
                 if 49 <= event.key <= 52:
-                    kolvo = [25, 50, 100, 200]
-                    BLOCKS = kolvo[event.key - 49]
+                    count = [25, 50, 100, 200]
+                    BLOCKS = count[event.key - 49]
                 if event.key == 113:
                     DIFFICULTY = 1
                 if event.key == 119:
@@ -200,26 +202,27 @@ def settings():
         jump.set_volume(VOLUME)
         victory_music.set_volume(VOLUME)
         screen.blit(image, (0, 0))
-        screen.blit(image_cursor_blocks, coords_blocks[BLOCKS])
-        screen.blit(image_cursor_dif, coords_dif[DIFFICULTY])
-        screen.blit(image_cursor_sound, coords_sound[VOLUME])
+        screen.blit(image_cursor_blocks, coord_blocks[BLOCKS])
+        screen.blit(image_cursor_dif, coord_dif[DIFFICULTY])
+        screen.blit(image_cursor_sound, coord_sound[VOLUME])
         pygame.display.flip()
 
 
 class Tiles(pygame.sprite.Sprite):
-    def __init__(self, type, x, y, arg=0):
-        if type == 'wood':
-            self.napr = arg
+    def __init__(self, type_of_tail, x_c, y_c, arg=0):
+        if type_of_tail == 'wood':
+            self.direction = arg
             super().__init__(tile_sprite, all_sprite, wood_sprite)
         else:
             super().__init__(tile_sprite, all_sprite)
-        self.type = type
-        self.image = tile_images[type]
-        self.rect = self.image.get_rect().move(x, y)
+        self.type = type_of_tail
+        self.pos = (x_c, y_c)
+        self.image = tile_images[type_of_tail]
+        self.rect = self.image.get_rect().move(x_c, y_c)
 
-    def update(self, *args):
+    def update(self):
         if self.type == 'wood' and -120 <= self.rect.y < 820:
-            if self.napr:
+            if self.direction:
                 self.rect.x = (self.rect.x - 1)
                 if self.rect.x < -60:
                     self.rect.x += 700
@@ -230,11 +233,12 @@ class Tiles(pygame.sprite.Sprite):
 
 
 class Train(pygame.sprite.Sprite):
-    def __init__(self, type, x, y):
+    def __init__(self, type_of_tail, x_c, y_c):
         super().__init__(all_sprite, railway_sprite)
-        self.image = tile_images[type]
-        self.type = type
-        self.rect = self.image.get_rect().move(x, y)
+        self.image = tile_images[type_of_tail]
+        self.pos = (x_c, y_c)
+        self.type = type_of_tail
+        self.rect = self.image.get_rect().move(x_c, y_c)
         self.per = choice(range(70, 125))
         self.v = 0
         self.sound = pygame.mixer.Sound('data\\snd\\train.wav')
@@ -275,12 +279,12 @@ def generate_level():
                 level_map = level_map + [lst]
             else:
                 if lst == 'W1':
-                    napr = '0'
+                    direction = '0'
                 else:
-                    napr = '1'
+                    direction = '1'
                 lst = choice([lst] * DIFFICULTY + ['0'] * (4 - DIFFICULTY))
                 if lst[0] == 'W':
-                    lst = lst[0] + napr
+                    lst = lst[0] + direction
                 level_map = level_map + [lst]
 
     level_map = level_map + ['@', '0', '0']
@@ -307,10 +311,10 @@ def make_back():
             finish_rect = Tiles('finish', 0, height - 50 - 60 * num).rect
         elif el[0] == 'W':
             Tiles('water', 0, height - 50 - 60 * num)
-            napr = int(el[1])
-            Tiles('wood', choice(range(-40, 60)), height - 30 - 60 * num, napr)
-            Tiles('wood', choice(range(200, 300)), height - 30 - 60 * num, napr)
-            Tiles('wood', choice(range(500, 600)), height - 30 - 60 * num, napr)
+            direction = int(el[1])
+            Tiles('wood', choice(range(-40, 60)), height - 30 - 60 * num, direction)
+            Tiles('wood', choice(range(200, 300)), height - 30 - 60 * num, direction)
+            Tiles('wood', choice(range(500, 600)), height - 30 - 60 * num, direction)
         elif el == 'R':
             Tiles('railway', 0, height - 50 - 60 * num)
             Train('train', 700, height - 50 - 60 * num)
@@ -326,7 +330,8 @@ class Camera:
 
     def apply(self, obj):
         if obj.type == 'car':
-            obj.pos = (obj.pos[0], obj.pos[1] + self.dy)
+            pos = obj.pos
+            obj.pos = (pos[0], pos[1] + self.dy)
         if obj.rect.x + self.dx >= -200:
             obj.rect.x += self.dx
         obj.rect.y += self.dy
@@ -336,6 +341,7 @@ class Camera:
                 obj.pos = (obj.pos[0], obj.pos[1] + 1)
 
     def update(self, target):
+        global tile_sprite
         self.tm += 1
         if target.rect.y < 250:
             self.dy = 50
@@ -361,6 +367,7 @@ def terminate():
 
 
 def finish_screen():
+    global railway_sprite
     pygame.mixer_music.stop()
     victory_music.play()
     image = pygame.image.load("data\\fons\\finished.png")
@@ -384,6 +391,7 @@ def finish_screen():
 
 
 def start_screen():
+    global NUMBER_OF_PERS
     pygame.mixer_music.load('data\\snd\\music_menu.wav')
     pygame.mixer_music.play(-1)
     image = pygame.image.load("data\\fons\\mar.png")
@@ -409,7 +417,8 @@ def start_screen():
 
 
 def dead_screen():
-    gameover_music.play()
+    global railway_sprite
+    game_over_music.play()
     image = pygame.image.load("data\\fons\\DeadFon2.png")
     screen.blit(image, (0, 0))
     for sprite in railway_sprite:
@@ -421,10 +430,10 @@ def dead_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN:
                 if event.key == 13:
-                    gameover_music.stop()
+                    game_over_music.stop()
                     return True
                 elif event.key == 27:
-                    gameover_music.stop()
+                    game_over_music.stop()
                     return False
         all_sprite.update()
         all_sprite.draw(screen)
@@ -442,22 +451,22 @@ def draw_info(player_step, start_time):
     pygame.draw.rect(screen, (62, 180, 137), (5, 5, rect_width, 70))
     font = pygame.font.Font(None, 50)
 
-    def to_string(int):
+    def to_string(number):
         if BLOCKS // 100:
-            return str(int // 100) + str(int % 100 // 10) + str(int % 100 % 10)
+            return str(number // 100) + str(number % 100 // 10) + str(number % 100 % 10)
         else:
-            return str(int // 10) + str(int % 10)
+            return str(number // 10) + str(number % 10)
 
     text = font.render(to_string(player_step) + "/" + to_string(BLOCKS), 1, (255, 222, 173))
     screen.blit(text, (10, 10))
 
-    def make_time(ttime):
+    def make_time(current_time):
         if BLOCKS > 50:
             space = "  "
         else:
             space = ""
-        return space + str(ttime // 60 // 10) + str(ttime // 60 % 10) + ":" \
-               + str(ttime % 60 // 10) + str(ttime % 60 % 10)
+        return space + str(current_time // 60 // 10) + str(current_time // 60 % 10) + ":" + str(
+            current_time % 60 // 10) + str(current_time % 60 % 10)
 
     font = pygame.font.Font(None, 50)
     text = font.render(make_time(int(time.time() - start_time)), 1, (255, 222, 173))
@@ -498,41 +507,41 @@ def game():
             if event.type == pygame.QUIT:
                 terminate()
             if event.type == pygame.KEYDOWN:
-                x, y = 0, 0
+                x_move, y_move = 0, 0
                 if event.key == 27:
                     stop = stop_game()
                     if stop:
                         return
                 if event.key == 275:
-                    x, y = 25, 0
+                    x_move, y_move = 25, 0
                     jump.play()
                 elif event.key == 276:
-                    x, y = -25, 0
+                    x_move, y_move = -25, 0
                     jump.play()
                 elif event.key == 273:
                     player_step += 1
-                    x, y = 0, -60
+                    x_move, y_move = 0, -60
                     jump.play()
                 elif event.key == 274:
                     player_step -= 1
-                    x, y = 0, 60
+                    x_move, y_move = 0, 60
                     jump.play()
                 step = True
                 for sprite in object_sprite:
-                    if sprite.rect.x <= player.rect.x + player.rect.w + x <= sprite.rect.x \
+                    if sprite.rect.x <= player.rect.x + player.rect.w + x_move <= sprite.rect.x \
                             + sprite.rect.w and abs(sprite.rect.y - player.rect.y) < 20:
-                        x -= player.rect.x + player.rect.w + x - sprite.rect.x + 1
-                    elif sprite.rect.x <= player.rect.x + x <= sprite.rect.x \
+                        x_move -= player.rect.x + player.rect.w + x_move - sprite.rect.x + 1
+                    elif sprite.rect.x <= player.rect.x + x_move <= sprite.rect.x \
                             + sprite.rect.w and abs(sprite.rect.y - player.rect.y) < 20:
-                        x = sprite.rect.x + sprite.rect.w - player.rect.x + 1
+                        x_move = sprite.rect.x + sprite.rect.w - player.rect.x + 1
                     elif sprite.rect.x <= player.rect.x + player.rect.w <= sprite.rect.x \
-                            + sprite.rect.w and abs(sprite.rect.y - player.rect.y - y) < 20:
+                            + sprite.rect.w and abs(sprite.rect.y - player.rect.y - y_move) < 20:
                         step = False
                     elif sprite.rect.x <= player.rect.x <= sprite.rect.x \
-                            + sprite.rect.w and abs(sprite.rect.y - player.rect.y - y) < 20:
+                            + sprite.rect.w and abs(sprite.rect.y - player.rect.y - y_move) < 20:
                         step = False
-                if 0 <= player.rect.x + x < width and step:
-                    player.rect = player.rect.move(x, y)
+                if 0 <= player.rect.x + x_move < width and step:
+                    player.rect = player.rect.move(x_move, y_move)
         screen.fill((62, 180, 137))
         camera.update(player)
         for sprite in all_sprite:
