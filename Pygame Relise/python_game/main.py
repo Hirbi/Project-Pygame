@@ -26,7 +26,7 @@ tile_images = {'grass': pygame.image.load('data\\grass.jpg'),
                'tree': pygame.image.load('data\\tree.png'),
                'stone': pygame.image.load('data\\stone.png')}
 
-persons = ['mar.png', 'clown.png', 'dino.png']
+persons = ['mar.png', 'clown.png', 'dino.png', 'guy.png']
 NUMBER_OF_PERS = 0
 DIFFICULTY = 1
 BLOCKS = 25
